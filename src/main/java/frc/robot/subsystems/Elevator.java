@@ -8,6 +8,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.subsystems.Elevator.Constants.Position;
 
+/** The subsystem for the robot's elevator mechanism */
 public class Elevator extends SubsystemBase implements BaseLinearMechanism<Position> {
     public static final class Constants {
 
