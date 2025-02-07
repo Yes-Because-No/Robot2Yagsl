@@ -18,6 +18,7 @@ import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
+/** The subysystem for the robot's swerve drive mechanisms */
 public class Drivetrain extends SubsystemBase implements BaseSwerveDrive{
     public static final class Constants {
 
