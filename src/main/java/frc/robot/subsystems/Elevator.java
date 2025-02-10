@@ -35,6 +35,7 @@ public class Elevator extends SubsystemBase implements BaseLinearMechanism<Posit
             public static final double kP = 0.0;
             public static final double kI = 0.0;
             public static final double kD = 0.0;
+            public static final double TOLERANCE = 0.05;
         }
 
         public static final class Feedforward{
@@ -80,13 +81,15 @@ public class Elevator extends SubsystemBase implements BaseLinearMechanism<Posit
         Feedback.kD, 
         elevatorProfile
     );
-    
+
     private final ElevatorFeedforward elevatorFeedforward = new ElevatorFeedforward(
         Feedforward.kS,
         Feedforward.kG,
         Feedforward.kV,
         Feedforward.kA
     );
+
+    private double elevatorVoltage;
 
     public Elevator(){
         elevatorConfig.smartCurrentLimit(MotorConfigs.CURRENT_LIMIT);
@@ -96,6 +99,9 @@ public class Elevator extends SubsystemBase implements BaseLinearMechanism<Posit
         elevatorMotor.configure(elevatorConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
 
         elevatorEncoder = elevatorMotor.getEncoder();
+
+        elevatorPidController.setTolerance(Feedback.TOLERANCE);
+
     }
 
     @Override
