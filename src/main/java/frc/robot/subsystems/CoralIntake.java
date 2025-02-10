@@ -58,7 +58,7 @@ public class CoralIntake extends SubsystemBase implements BaseIntake {
         }, () -> {
             motorL.stopMotor();
             motorR.stopMotor();
-        });
+        }).withName("CoralIntake.runRollersCommand");
 
     }
     /** Runs the rollers of the coral intake mechanism in reverse
@@ -72,6 +72,6 @@ public class CoralIntake extends SubsystemBase implements BaseIntake {
         }, () -> {
             motorL.stopMotor();
             motorR.stopMotor();
-        });
+        }).withName("CoralIntake.reverseRollersCommand");
     }
 }
