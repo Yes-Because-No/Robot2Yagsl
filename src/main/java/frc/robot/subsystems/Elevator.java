@@ -8,6 +8,7 @@ import com.revrobotics.spark.SparkBase.PersistMode;
 import com.revrobotics.spark.SparkBase.ResetMode;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.config.SparkMaxConfig;
+import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.techhounds.houndutil.houndlib.subsystems.BaseLinearMechanism;
 
 import edu.wpi.first.math.MathUtil;
@@ -17,6 +18,7 @@ import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import edu.wpi.first.wpilibj2.command.Command.InterruptionBehavior;
 import frc.robot.subsystems.Elevator.Constants.*;
 
 /** The subsystem for the robot's elevator mechanism */
@@ -168,19 +170,25 @@ public class Elevator extends SubsystemBase implements BaseLinearMechanism<Posit
 
     @Override
     public Command resetPositionCommand() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'resetPositionCommand'");
+        return runOnce(this::resetPosition).withName("elevator.resetPosition");
     }
 
     @Override
     public Command setOverridenSpeedCommand(Supplier<Double> speed) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'setOverridenSpeedCommand'");
+        return runEnd(()->setVoltage(speed.get()*12.0),()->setVoltage(0))
+            .withName("elevator.setOverridenSpeed");
     }
 
     @Override
     public Command coastMotorsCommand() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'coastMotorsCommand'");
+        return runOnce(elevatorMotor::stopMotor)
+            .andThen(()->{
+                elevatorConfig.idleMode(IdleMode.kCoast);
+                elevatorMotor.configure(elevatorConfig, ResetMode.kResetSafeParameters,PersistMode.kPersistParameters);
+            }).finallyDo((d)->{
+                elevatorConfig.idleMode(IdleMode.kBrake);
+                elevatorMotor.configure(elevatorConfig, ResetMode.kResetSafeParameters,PersistMode.kPersistParameters);
+            }).withInterruptBehavior(InterruptionBehavior.kCancelIncoming)
+            .withName("elevator.coastMotors");
     }
 }
