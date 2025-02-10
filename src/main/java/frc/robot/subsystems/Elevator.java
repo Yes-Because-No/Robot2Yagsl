@@ -10,6 +10,7 @@ import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.config.SparkMaxConfig;
 import com.techhounds.houndutil.houndlib.subsystems.BaseLinearMechanism;
 
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.subsystems.Elevator.Constants.*;
@@ -69,8 +70,7 @@ public class Elevator extends SubsystemBase implements BaseLinearMechanism<Posit
 
     @Override
     public void setVoltage(double voltage) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'setVoltage'");
+        elevatorMotor.setVoltage(MathUtil.clamp(voltage,-12,12));
     }
 
     @Override
