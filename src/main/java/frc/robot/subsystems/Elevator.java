@@ -2,6 +2,7 @@ package frc.robot.subsystems;
 
 import java.util.function.Supplier;
 
+import com.revrobotics.RelativeEncoder;
 import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.SparkBase.PersistMode;
 import com.revrobotics.spark.SparkBase.ResetMode;
@@ -27,6 +28,7 @@ public class Elevator extends SubsystemBase implements BaseLinearMechanism<Posit
         }
 
         public static enum Position {
+            RESET(0.0),
             ZERO(0.0),
             L1(0.0),
             L2(0.0),
@@ -43,6 +45,7 @@ public class Elevator extends SubsystemBase implements BaseLinearMechanism<Posit
 
     private final SparkMax elevatorMotor = new SparkMax(CAN.CANID, MotorType.kBrushless);
     private final SparkMaxConfig elevatorConfig = new SparkMaxConfig();
+    private final RelativeEncoder elevatorEncoder;
 
     public Elevator(){
         elevatorConfig.smartCurrentLimit(MotorConfigs.CURRENT_LIMIT);
@@ -50,18 +53,18 @@ public class Elevator extends SubsystemBase implements BaseLinearMechanism<Posit
         elevatorConfig.inverted(MotorConfigs.INVERTED);
 
         elevatorMotor.configure(elevatorConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+
+        elevatorEncoder = elevatorMotor.getEncoder();
     }
 
     @Override
     public double getPosition() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'getPosition'");
+        return elevatorEncoder.getPosition();
     }
 
     @Override
     public void resetPosition() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'resetPosition'");
+        elevatorEncoder.setPosition(Position.RESET.position);
     }
 
     @Override
