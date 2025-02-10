@@ -11,6 +11,7 @@ import com.revrobotics.spark.config.SparkMaxConfig;
 import com.techhounds.houndutil.houndlib.subsystems.BaseLinearMechanism;
 
 import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.subsystems.Elevator.Constants.*;
@@ -27,6 +28,29 @@ public class Elevator extends SubsystemBase implements BaseLinearMechanism<Posit
             public static int CURRENT_LIMIT = 0;
             public static double ENCODER_CONVERSION_FACTOR = 0.0;
         }
+
+        public static final class Feedback{
+            public static final double kP = 0.0;
+            public static final double kI = 0.0;
+            public static final double kD = 0.0;
+        }
+
+        public static final class Feedforward{
+            public static final double kG = 0.0;
+            public static final double kS = 0.0;
+            public static final double kV = 0.0;
+            public static final double kA = 0.0;
+        }
+
+        public static final class MotionProfile{
+            public static final double MAX_ACCELERATION = 0.0;
+            public static final double MAX_VELOCITY = 0.0;
+        }
+
+        public static final TrapezoidProfile.Constraints ELEVATOR_PROFILE = new TrapezoidProfile.Constraints(
+            MotionProfile.MAX_VELOCITY,
+            MotionProfile.MAX_ACCELERATION
+        );
 
         public static enum Position {
             RESET(0.0),
@@ -47,6 +71,7 @@ public class Elevator extends SubsystemBase implements BaseLinearMechanism<Posit
     private final SparkMax elevatorMotor = new SparkMax(CAN.CANID, MotorType.kBrushless);
     private final SparkMaxConfig elevatorConfig = new SparkMaxConfig();
     private final RelativeEncoder elevatorEncoder;
+    private final TrapezoidProfile.Constraints elevatorProfile = Constants.ELEVATOR_PROFILE;
 
     public Elevator(){
         elevatorConfig.smartCurrentLimit(MotorConfigs.CURRENT_LIMIT);
