@@ -21,6 +21,18 @@ public class AlgaeIntake extends SubsystemBase implements BaseIntake, BaseSingle
             public static final int ARM_R = 0; //TODO when CAN finalized
             public static final int BAR = 0; //TODO when CAN finalized
         }
+
+        public static final class CURRENT_LIMITS {
+            public static final int ARM_L = 0; //TODO
+            public static final int ARM_R = 0; //TODO
+            public static final int BAR = 0; //TODO
+        }
+
+        public static final class INVERSION {
+            public static final boolean ARM_L = true; //TODO after testing
+            public static final boolean ARM_R = false; //TODO after testing
+            public static final boolean BAR = false; //TODO after testing
+        }
         public static enum Position {
             ZERO(0.0),
             INTAKE(0.0);
@@ -38,15 +50,30 @@ public class AlgaeIntake extends SubsystemBase implements BaseIntake, BaseSingle
     private final SparkMax armR = new SparkMax(Constants.CAN_IDS.ARM_R, MotorType.kBrushless);
     private final SparkMax bar = new SparkMax(Constants.CAN_IDS.BAR, MotorType.kBrushless);
 
-    //Create encoder objects
+    // Create encoder objects
     private final RelativeEncoder armLEncoder = armL.getEncoder();
     private final RelativeEncoder armREncoder = armR.getEncoder();
     private final RelativeEncoder barEncoder = bar.getEncoder();
 
-    //Create config objects
+    // Create config objects
     private final SparkMaxConfig armLConfig = new SparkMaxConfig();
     private final SparkMaxConfig armRConfig = new SparkMaxConfig();
     private final SparkMaxConfig barConfig = new SparkMaxConfig();
+
+    // Constructor
+    public AlgaeIntake() {
+        armLConfig
+            .smartCurrentLimit(Constants.CURRENT_LIMITS.ARM_L)
+            .inverted(Constants.INVERSION.ARM_L);
+        
+        armRConfig
+            .smartCurrentLimit(Constants.CURRENT_LIMITS.ARM_R)
+            .inverted(Constants.INVERSION.ARM_R);
+
+        barConfig
+            .smartCurrentLimit(Constants.CURRENT_LIMITS.BAR)
+            .inverted(Constants.INVERSION.BAR);
+    }
 
     @Override
     public double getPosition() {
