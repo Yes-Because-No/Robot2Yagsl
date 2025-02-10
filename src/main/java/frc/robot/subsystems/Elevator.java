@@ -102,6 +102,7 @@ public class Elevator extends SubsystemBase implements BaseLinearMechanism<Posit
 
         elevatorPidController.setTolerance(Feedback.TOLERANCE);
 
+        setDefaultCommand(moveToCurrentGoalCommand());
     }
 
     @Override
@@ -114,6 +115,10 @@ public class Elevator extends SubsystemBase implements BaseLinearMechanism<Posit
         elevatorEncoder.setPosition(Position.RESET.position);
     }
 
+    public boolean atGoal(){
+        return elevatorPidController.atGoal();
+    }
+
     @Override
     public void setVoltage(double voltage) {
         elevatorMotor.setVoltage(MathUtil.clamp(voltage,-12,12));
@@ -121,8 +126,13 @@ public class Elevator extends SubsystemBase implements BaseLinearMechanism<Posit
 
     @Override
     public Command moveToCurrentGoalCommand() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'moveToCurrentGoalCommand'");
+        return run(()->{
+            double feedforward = elevatorFeedforward.calculate(elevatorPidController.getSetpoint().velocity);
+            double pid = elevatorPidController.calculate(getPosition());
+            elevatorVoltage = MathUtil.clamp(feedforward+pid, -12, 12);
+            setVoltage(elevatorVoltage);
+        }).withName("elevator.moveToCurrentGoal");
+        
     }
 
     @Override
