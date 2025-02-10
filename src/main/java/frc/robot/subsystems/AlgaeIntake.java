@@ -2,10 +2,15 @@ package frc.robot.subsystems;
 
 import java.util.function.Supplier;
 
+import com.fasterxml.jackson.annotation.JsonTypeInfo.Id;
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.spark.SparkMax;
+import com.revrobotics.spark.SparkBase.PersistMode;
+import com.revrobotics.spark.SparkBase.ResetMode;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
+import com.revrobotics.spark.config.EncoderConfig;
 import com.revrobotics.spark.config.SparkMaxConfig;
+import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.techhounds.houndutil.houndlib.subsystems.BaseIntake;
 import com.techhounds.houndutil.houndlib.subsystems.BaseSingleJointedArm;
 
@@ -33,6 +38,11 @@ public class AlgaeIntake extends SubsystemBase implements BaseIntake, BaseSingle
             public static final boolean ARM_R = false; //TODO after testing
             public static final boolean BAR = false; //TODO after testing
         }
+
+        public static final class GEAR_RATIOS {
+            public static final double ARM = 0; //TODO get actual gear ratio
+            public static final double BAR = 0; //TODO get actual gear ratio
+        }
         public static enum Position {
             ZERO(0.0),
             INTAKE(0.0);
@@ -59,26 +69,44 @@ public class AlgaeIntake extends SubsystemBase implements BaseIntake, BaseSingle
     private final SparkMaxConfig armLConfig = new SparkMaxConfig();
     private final SparkMaxConfig armRConfig = new SparkMaxConfig();
     private final SparkMaxConfig barConfig = new SparkMaxConfig();
+    private final EncoderConfig armEncoderConfig = new EncoderConfig();
+    private final EncoderConfig barEncoderConfig = new EncoderConfig();
 
     // Constructor
     public AlgaeIntake() {
+        // Configure each motor
         armLConfig
             .smartCurrentLimit(Constants.CURRENT_LIMITS.ARM_L)
+            .idleMode(IdleMode.kBrake)
             .inverted(Constants.INVERSION.ARM_L);
         
         armRConfig
             .smartCurrentLimit(Constants.CURRENT_LIMITS.ARM_R)
+            .idleMode(IdleMode.kBrake)
             .inverted(Constants.INVERSION.ARM_R);
+
+        armEncoderConfig
+            .positionConversionFactor(Constants.GEAR_RATIOS.ARM * (2 * Math.PI));
 
         barConfig
             .smartCurrentLimit(Constants.CURRENT_LIMITS.BAR)
+            .idleMode(IdleMode.kBrake)
             .inverted(Constants.INVERSION.BAR);
+
+        barEncoderConfig
+            .positionConversionFactor(Constants.GEAR_RATIOS.BAR * (2 * Math.PI));
+
+        armL.configure(armLConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+        armR.configure(armRConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+        bar.configure(barConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
     }
 
+    /** Gets the position of the algae intake arm mechanism
+     * @return the position in radians
+     */
     @Override
     public double getPosition() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'getPosition'");
+        return armLEncoder.getPosition();
     }
 
     @Override
