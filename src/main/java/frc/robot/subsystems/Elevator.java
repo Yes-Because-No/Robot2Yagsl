@@ -3,7 +3,10 @@ package frc.robot.subsystems;
 import java.util.function.Supplier;
 
 import com.revrobotics.spark.SparkMax;
+import com.revrobotics.spark.SparkBase.PersistMode;
+import com.revrobotics.spark.SparkBase.ResetMode;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
+import com.revrobotics.spark.config.SparkMaxConfig;
 import com.techhounds.houndutil.houndlib.subsystems.BaseLinearMechanism;
 
 import edu.wpi.first.wpilibj2.command.Command;
@@ -19,7 +22,7 @@ public class Elevator extends SubsystemBase implements BaseLinearMechanism<Posit
 
         public static final class MotorConfigs{
             public static boolean INVERTED = false;
-            public static double CURRENT_LIMIT = 0.0;
+            public static int CURRENT_LIMIT = 0;
             public static double ENCODER_CONVERSION_FACTOR = 0.0;
         }
 
@@ -39,6 +42,15 @@ public class Elevator extends SubsystemBase implements BaseLinearMechanism<Posit
     }
 
     private final SparkMax elevatorMotor = new SparkMax(CAN.CANID, MotorType.kBrushless);
+    private final SparkMaxConfig elevatorConfig = new SparkMaxConfig();
+
+    public Elevator(){
+        elevatorConfig.smartCurrentLimit(MotorConfigs.CURRENT_LIMIT);
+        elevatorConfig.encoder.positionConversionFactor(MotorConfigs.ENCODER_CONVERSION_FACTOR);
+        elevatorConfig.inverted(MotorConfigs.INVERTED);
+
+        elevatorMotor.configure(elevatorConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+    }
 
     @Override
     public double getPosition() {
