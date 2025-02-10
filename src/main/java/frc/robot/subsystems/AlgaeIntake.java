@@ -2,6 +2,10 @@ package frc.robot.subsystems;
 
 import java.util.function.Supplier;
 
+import com.revrobotics.RelativeEncoder;
+import com.revrobotics.spark.SparkMax;
+import com.revrobotics.spark.SparkLowLevel.MotorType;
+import com.revrobotics.spark.config.SparkMaxConfig;
 import com.techhounds.houndutil.houndlib.subsystems.BaseIntake;
 import com.techhounds.houndutil.houndlib.subsystems.BaseSingleJointedArm;
 
@@ -12,9 +16,14 @@ import frc.robot.subsystems.AlgaeIntake.Constants.Position;
 /** The subsystem for the robot's algae intake and scoring mechanism */
 public class AlgaeIntake extends SubsystemBase implements BaseIntake, BaseSingleJointedArm<Position> {
     public static final class Constants {
-
+        public static final class CAN_IDS {
+            public static final int ARM_L = 0; //TODO when CAN finalized
+            public static final int ARM_R = 0; //TODO when CAN finalized
+            public static final int BAR = 0; //TODO when CAN finalized
+        }
         public static enum Position {
-            ZERO(0.0);
+            ZERO(0.0),
+            INTAKE(0.0);
 
             public final double position;
 
@@ -23,6 +32,21 @@ public class AlgaeIntake extends SubsystemBase implements BaseIntake, BaseSingle
             }
         }
     }
+
+    // Create motor objects
+    private final SparkMax armL = new SparkMax(Constants.CAN_IDS.ARM_L, MotorType.kBrushless);
+    private final SparkMax armR = new SparkMax(Constants.CAN_IDS.ARM_R, MotorType.kBrushless);
+    private final SparkMax bar = new SparkMax(Constants.CAN_IDS.BAR, MotorType.kBrushless);
+
+    //Create encoder objects
+    private final RelativeEncoder armLEncoder = armL.getEncoder();
+    private final RelativeEncoder armREncoder = armR.getEncoder();
+    private final RelativeEncoder barEncoder = bar.getEncoder();
+
+    //Create config objects
+    private final SparkMaxConfig armLConfig = new SparkMaxConfig();
+    private final SparkMaxConfig armRConfig = new SparkMaxConfig();
+    private final SparkMaxConfig barConfig = new SparkMaxConfig();
 
     @Override
     public double getPosition() {
