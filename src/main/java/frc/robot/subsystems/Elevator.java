@@ -11,6 +11,8 @@ import com.revrobotics.spark.config.SparkMaxConfig;
 import com.techhounds.houndutil.houndlib.subsystems.BaseLinearMechanism;
 
 import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.math.controller.ElevatorFeedforward;
+import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -72,6 +74,19 @@ public class Elevator extends SubsystemBase implements BaseLinearMechanism<Posit
     private final SparkMaxConfig elevatorConfig = new SparkMaxConfig();
     private final RelativeEncoder elevatorEncoder;
     private final TrapezoidProfile.Constraints elevatorProfile = Constants.ELEVATOR_PROFILE;
+    private final ProfiledPIDController elevatorPidController = new ProfiledPIDController(
+        Feedback.kP, 
+        Feedback.kI, 
+        Feedback.kD, 
+        elevatorProfile
+    );
+    
+    private final ElevatorFeedforward elevatorFeedforward = new ElevatorFeedforward(
+        Feedforward.kS,
+        Feedforward.kG,
+        Feedforward.kV,
+        Feedforward.kA
+    );
 
     public Elevator(){
         elevatorConfig.smartCurrentLimit(MotorConfigs.CURRENT_LIMIT);
