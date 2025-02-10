@@ -15,6 +15,7 @@ import edu.wpi.first.math.controller.ElevatorFeedforward;
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.subsystems.Elevator.Constants.*;
 
@@ -137,26 +138,32 @@ public class Elevator extends SubsystemBase implements BaseLinearMechanism<Posit
 
     @Override
     public Command moveToPositionCommand(Supplier<Position> goalPositionSupplier) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'moveToPositionCommand'");
+        return Commands.sequence(
+            runOnce(()-> elevatorPidController.reset(getPosition())),
+            runOnce(()-> elevatorPidController.setGoal(goalPositionSupplier.get().position)),
+            moveToCurrentGoalCommand().until(this::atGoal).withName("elevator.moveToPosition")
+        );
     }
 
     @Override
     public Command moveToArbitraryPositionCommand(Supplier<Double> goalPositionSupplier) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'moveToArbitraryPositionCommand'");
+        return Commands.sequence(
+            runOnce(()-> elevatorPidController.reset(getPosition())),
+            runOnce(()-> elevatorPidController.setGoal(goalPositionSupplier.get())),
+            moveToCurrentGoalCommand().until(this::atGoal).withName("elevator.moveToArbitraryPosition")
+        );
     }
 
     @Override
     public Command movePositionDeltaCommand(Supplier<Double> delta) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'movePositionDeltaCommand'");
+        return moveToArbitraryPositionCommand(()->getPosition()+delta.get())
+            .withName("elevator.movePositionDelta");
     }
 
     @Override
     public Command holdCurrentPositionCommand() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'holdCurrentPositionCommand'");
+        return runOnce(()->elevatorPidController.setGoal(getPosition())).andThen(moveToCurrentGoalCommand())
+            .withName("elevator.holdCurrentPosition");
     }
 
     @Override
