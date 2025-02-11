@@ -121,7 +121,7 @@ public class Elevator extends SubsystemBase implements BaseLinearMechanism<Posit
             this
         )
     );
-    
+
     public Elevator(){
         elevatorConfig.smartCurrentLimit(MotorConfigs.CURRENT_LIMIT);
         elevatorConfig.encoder.positionConversionFactor(MotorConfigs.ENCODER_CONVERSION_FACTOR);
@@ -226,5 +226,13 @@ public class Elevator extends SubsystemBase implements BaseLinearMechanism<Posit
                 elevatorMotor.configure(elevatorConfig, ResetMode.kResetSafeParameters,PersistMode.kPersistParameters);
             }).withInterruptBehavior(InterruptionBehavior.kCancelIncoming)
             .withName("elevator.coastMotors");
+    }
+
+    public Command sysIdQuasistatic(SysIdRoutine.Direction direction){
+        return sysIdRoutine.quasistatic(direction).withName("elevator.sysIdDynamic");
+    }
+
+    public Command sysIdDynamic(SysIdRoutine.Direction direction){
+        return sysIdRoutine.dynamic(direction).withName("elevator.sysIdDynamic");
     }
 }
