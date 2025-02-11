@@ -15,11 +15,19 @@ import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.ElevatorFeedforward;
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
+import edu.wpi.first.units.measure.MutDistance;
+import edu.wpi.first.units.measure.MutLinearVelocity;
+import edu.wpi.first.units.measure.MutVoltage;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.Command.InterruptionBehavior;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.subsystems.Elevator.Constants.*;
+
+import static edu.wpi.first.units.Units.Meters;
+import static edu.wpi.first.units.Units.MetersPerSecond;
+import static edu.wpi.first.units.Units.Volts;
 
 /** The subsystem for the robot's elevator mechanism */
 public class Elevator extends SubsystemBase implements BaseLinearMechanism<Position> {
@@ -94,6 +102,26 @@ public class Elevator extends SubsystemBase implements BaseLinearMechanism<Posit
 
     private double elevatorVoltage;
 
+    private final MutVoltage sysIdVoltage = Volts.mutable(0);
+    private final MutDistance sysIdPosition = Meters.mutable(0);
+    private final MutLinearVelocity sysIdVelocity = MetersPerSecond.mutable(0);
+
+    private final SysIdRoutine sysIdRoutine = new SysIdRoutine(
+        new SysIdRoutine.Config(),
+        new SysIdRoutine.Mechanism(
+            (voltage)->{
+                setVoltage(voltage.magnitude());
+            }, 
+            (log)->{
+                log.motor("elevator")
+                    .voltage(sysIdVoltage.mut_replace(getVoltage(), Volts))
+                    .linearPosition(sysIdPosition.mut_replace(getPosition(), Meters))
+                    .linearVelocity(sysIdVelocity.mut_replace(getVelocity(), MetersPerSecond));
+            }, 
+            this
+        )
+    );
+    
     public Elevator(){
         elevatorConfig.smartCurrentLimit(MotorConfigs.CURRENT_LIMIT);
         elevatorConfig.encoder.positionConversionFactor(MotorConfigs.ENCODER_CONVERSION_FACTOR);
@@ -116,6 +144,14 @@ public class Elevator extends SubsystemBase implements BaseLinearMechanism<Posit
     @Override
     public void resetPosition() {
         elevatorEncoder.setPosition(Position.RESET.position);
+    }
+
+    public double getVoltage(){
+        return elevatorMotor.getAppliedOutput();
+    }
+
+    public double getVelocity(){
+        return elevatorEncoder.getVelocity();
     }
 
     public boolean atGoal(){
