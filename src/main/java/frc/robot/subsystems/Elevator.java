@@ -31,6 +31,7 @@ import static edu.wpi.first.units.Units.Volts;
 
 /** The subsystem for the robot's elevator mechanism */
 public class Elevator extends SubsystemBase implements BaseLinearMechanism<Position> {
+    /**As of right now, no constant values are finalized */
     public static final class Constants {
         public static final class CAN{
             public static final int CANID = 0;
