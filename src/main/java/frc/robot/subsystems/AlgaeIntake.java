@@ -74,27 +74,30 @@ public class AlgaeIntake extends SubsystemBase implements BaseIntake, BaseSingle
 
     // Constructor
     public AlgaeIntake() {
-        // Configure each motor
+        // Configure each motor & encoder
         armLConfig
             .smartCurrentLimit(Constants.CURRENT_LIMITS.ARM_L)
             .idleMode(IdleMode.kBrake)
-            .inverted(Constants.INVERSION.ARM_L);
+            .inverted(Constants.INVERSION.ARM_L)
+            .encoder
+                .positionConversionFactor(Constants.GEAR_RATIOS.ARM * (2 * Math.PI))
+                .velocityConversionFactor((Constants.GEAR_RATIOS.ARM * (2 * Math.PI)) / 60);
         
         armRConfig
             .smartCurrentLimit(Constants.CURRENT_LIMITS.ARM_R)
             .idleMode(IdleMode.kBrake)
-            .inverted(Constants.INVERSION.ARM_R);
-
-        armEncoderConfig
-            .positionConversionFactor(Constants.GEAR_RATIOS.ARM * (2 * Math.PI));
+            .inverted(Constants.INVERSION.ARM_R)
+            .encoder
+                .positionConversionFactor(Constants.GEAR_RATIOS.ARM * (2 * Math.PI))
+                .velocityConversionFactor((Constants.GEAR_RATIOS.ARM * (2 * Math.PI)) / 60);
 
         barConfig
             .smartCurrentLimit(Constants.CURRENT_LIMITS.BAR)
             .idleMode(IdleMode.kBrake)
-            .inverted(Constants.INVERSION.BAR);
-
-        barEncoderConfig
-            .positionConversionFactor(Constants.GEAR_RATIOS.BAR * (2 * Math.PI));
+            .inverted(Constants.INVERSION.BAR)
+            .encoder
+                .positionConversionFactor(Constants.GEAR_RATIOS.BAR * (2 * Math.PI))
+                .velocityConversionFactor((Constants.GEAR_RATIOS.BAR * (2 * Math.PI)) / 60);
 
         armL.configure(armLConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
         armR.configure(armRConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
