@@ -14,6 +14,7 @@ import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.techhounds.houndutil.houndlib.subsystems.BaseIntake;
 import com.techhounds.houndutil.houndlib.subsystems.BaseSingleJointedArm;
 
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.subsystems.AlgaeIntake.Constants.Position;
@@ -43,9 +44,10 @@ public class AlgaeIntake extends SubsystemBase implements BaseIntake, BaseSingle
             public static final double ARM = 0; //TODO get actual gear ratio
             public static final double BAR = 0; //TODO get actual gear ratio
         }
+
         public static enum Position {
-            ZERO(0.0),
-            INTAKE(0.0);
+            ARM_RESET(0.0), //TODO test for actual position
+            BAR_RESET(0.0); //TODO test for actual position
 
             public final double position;
 
@@ -72,7 +74,9 @@ public class AlgaeIntake extends SubsystemBase implements BaseIntake, BaseSingle
     private final EncoderConfig armEncoderConfig = new EncoderConfig();
     private final EncoderConfig barEncoderConfig = new EncoderConfig();
 
-    // Constructor
+    /** The constructor for the coral intake subsystem
+     * @return the object
+     */
     public AlgaeIntake() {
         // Configure each motor & encoder
         armLConfig
@@ -112,16 +116,20 @@ public class AlgaeIntake extends SubsystemBase implements BaseIntake, BaseSingle
         return armLEncoder.getPosition();
     }
 
+    /** Resets the encoder positions of the algae intake arm mechanism */
     @Override
     public void resetPosition() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'resetPosition'");
+        armLEncoder.setPosition(Constants.Position.ARM_RESET.position);
+        armREncoder.setPosition(Constants.Position.ARM_RESET.position);
     }
 
+    /** Explicitly set the voltage of the algae intake arm mechanism 
+     * @param voltage to set [-12, 12]
+    */
     @Override
     public void setVoltage(double voltage) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'setVoltage'");
+        armL.setVoltage(MathUtil.clamp(voltage, -12, 12));
+        armR.setVoltage(MathUtil.clamp(voltage, -12, 12));
     }
 
     @Override
