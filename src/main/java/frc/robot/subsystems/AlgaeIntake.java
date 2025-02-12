@@ -2,19 +2,20 @@ package frc.robot.subsystems;
 
 import java.util.function.Supplier;
 
-import com.fasterxml.jackson.annotation.JsonTypeInfo.Id;
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.SparkBase.PersistMode;
 import com.revrobotics.spark.SparkBase.ResetMode;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
-import com.revrobotics.spark.config.EncoderConfig;
 import com.revrobotics.spark.config.SparkMaxConfig;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.techhounds.houndutil.houndlib.subsystems.BaseIntake;
 import com.techhounds.houndutil.houndlib.subsystems.BaseSingleJointedArm;
 
 import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.math.controller.ArmFeedforward;
+import edu.wpi.first.math.controller.ProfiledPIDController;
+import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.subsystems.AlgaeIntake.Constants.Position;
@@ -23,9 +24,9 @@ import frc.robot.subsystems.AlgaeIntake.Constants.Position;
 public class AlgaeIntake extends SubsystemBase implements BaseIntake, BaseSingleJointedArm<Position> {
     public static final class Constants {
         public static final class CAN_IDS {
-            public static final int ARM_L = 0; //TODO when CAN finalized
-            public static final int ARM_R = 0; //TODO when CAN finalized
-            public static final int BAR = 0; //TODO when CAN finalized
+            public static final int ARM_L = 12;
+            public static final int ARM_R = 17;
+            public static final int BAR = 18;
         }
 
         public static final class CURRENT_LIMITS {
@@ -45,9 +46,22 @@ public class AlgaeIntake extends SubsystemBase implements BaseIntake, BaseSingle
             public static final double BAR = 0; //TODO get actual gear ratio
         }
 
+        public static final class Feedback {
+            public static final double kP = 0; //TODO SysId
+            public static final double kI = 0; //TODO SysId
+            public static final double kD = 0; //TODO SysId
+            public static final double MAX_VELOCITY = 0; //TODO SysId
+            public static final double MAX_ACCEL = 0; //TODO SysId
+        }
+
+        public static final class Feedforward {
+            public static final double kS = 0; //TODO SysId
+            public static final double kG = 0; //TODO SysId
+            public static final double kV = 0; //TODO SysId
+        }
+
         public static enum Position {
-            ARM_RESET(0.0), //TODO test for actual position
-            BAR_RESET(0.0); //TODO test for actual position
+            ARM_RESET(0.0); //TODO test for actual position
 
             public final double position;
 
@@ -65,14 +79,16 @@ public class AlgaeIntake extends SubsystemBase implements BaseIntake, BaseSingle
     // Create encoder objects
     private final RelativeEncoder armLEncoder = armL.getEncoder();
     private final RelativeEncoder armREncoder = armR.getEncoder();
-    private final RelativeEncoder barEncoder = bar.getEncoder();
 
     // Create config objects
     private final SparkMaxConfig armLConfig = new SparkMaxConfig();
     private final SparkMaxConfig armRConfig = new SparkMaxConfig();
     private final SparkMaxConfig barConfig = new SparkMaxConfig();
-    private final EncoderConfig armEncoderConfig = new EncoderConfig();
-    private final EncoderConfig barEncoderConfig = new EncoderConfig();
+
+    // Create controller objects
+    private final ProfiledPIDController PID = new ProfiledPIDController(Constants.Feedback.kP, Constants.Feedback.kI, Constants.Feedback.kD, 
+        new TrapezoidProfile.Constraints(Constants.Feedback.MAX_VELOCITY, Constants.Feedback.MAX_ACCEL));
+    private final ArmFeedforward Feedforward = new ArmFeedforward(Constants.Feedforward.kS, Constants.Feedforward.kG, Constants.Feedforward.kV);
 
     /** The constructor for the coral intake subsystem
      * @return the object
