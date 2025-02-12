@@ -58,6 +58,7 @@ public class AlgaeIntake extends SubsystemBase implements BaseIntake, BaseSingle
             public static final double kS = 0; //TODO SysId
             public static final double kG = 0; //TODO SysId
             public static final double kV = 0; //TODO SysId
+            public static final double kA = 0; //TODO SysId
         }
 
         public static enum Position {
@@ -88,7 +89,7 @@ public class AlgaeIntake extends SubsystemBase implements BaseIntake, BaseSingle
     // Create controller objects
     private final ProfiledPIDController PID = new ProfiledPIDController(Constants.Feedback.kP, Constants.Feedback.kI, Constants.Feedback.kD, 
         new TrapezoidProfile.Constraints(Constants.Feedback.MAX_VELOCITY, Constants.Feedback.MAX_ACCEL));
-    private final ArmFeedforward Feedforward = new ArmFeedforward(Constants.Feedforward.kS, Constants.Feedforward.kG, Constants.Feedforward.kV);
+    private final ArmFeedforward Feedforward = new ArmFeedforward(Constants.Feedforward.kS, Constants.Feedforward.kG, Constants.Feedforward.kV, Constants.Feedforward.kA);
 
     /** The constructor for the coral intake subsystem
      * @return the object
@@ -114,14 +115,13 @@ public class AlgaeIntake extends SubsystemBase implements BaseIntake, BaseSingle
         barConfig
             .smartCurrentLimit(Constants.CURRENT_LIMITS.BAR)
             .idleMode(IdleMode.kBrake)
-            .inverted(Constants.INVERSION.BAR)
-            .encoder
-                .positionConversionFactor(Constants.GEAR_RATIOS.BAR * (2 * Math.PI))
-                .velocityConversionFactor((Constants.GEAR_RATIOS.BAR * (2 * Math.PI)) / 60);
+            .inverted(Constants.INVERSION.BAR);
 
         armL.configure(armLConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
         armR.configure(armRConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
         bar.configure(barConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+
+        PID.reset(getPosition());
     }
 
     /** Gets the position of the algae intake arm mechanism
@@ -148,10 +148,14 @@ public class AlgaeIntake extends SubsystemBase implements BaseIntake, BaseSingle
         armR.setVoltage(MathUtil.clamp(voltage, -12, 12));
     }
 
+    /** Move the algae intake arm mechanism to it's current goal position
+     * @return the command
+     */
     @Override
     public Command moveToCurrentGoalCommand() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'moveToCurrentGoalCommand'");
+        return run(() -> {
+            setVoltage(PID.calculate(getPosition()) + Feedforward.calculate(PID.getGoal().position, PID.getGoal().velocity));
+        });
     }
 
     @Override
