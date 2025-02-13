@@ -62,6 +62,8 @@ public class AlgaeIntake extends SubsystemBase implements BaseIntake, BaseSingle
             public static final double kA = 0; //TODO SysId
         }
 
+        public static final double VOLTAGE = 0; //TODO find desired speed
+
         public static enum Position {
             ARM_RESET(0.0); //TODO test for actual position
 
@@ -115,7 +117,7 @@ public class AlgaeIntake extends SubsystemBase implements BaseIntake, BaseSingle
 
         barConfig
             .smartCurrentLimit(Constants.CURRENT_LIMITS.BAR)
-            .idleMode(IdleMode.kBrake)
+            .idleMode(IdleMode.kCoast)
             .inverted(Constants.INVERSION.BAR);
 
         armL.configure(armLConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
@@ -264,15 +266,27 @@ public class AlgaeIntake extends SubsystemBase implements BaseIntake, BaseSingle
         });
     }
 
+    /** Run the bar of the algae intake at a predetermined voltage in the direction that will intake an algae
+     * @return the command
+     */
     @Override
     public Command runRollersCommand() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'runRollersCommand'");
+        return startEnd(() -> {
+            bar.setVoltage(Constants.VOLTAGE);
+        }, () -> {
+            bar.stopMotor();
+        });
     }
 
+    /** Run the bar of the algae intake at a predetermined voltage in the direction that will eject an algae
+     * @return the command
+     */
     @Override
     public Command reverseRollersCommand() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'reverseRollersCommand'");
+        return startEnd(() -> {
+            bar.setVoltage(-Constants.VOLTAGE);
+        }, () -> {
+            bar.stopMotor();
+        });
     }
 }
