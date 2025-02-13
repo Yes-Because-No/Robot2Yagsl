@@ -17,6 +17,7 @@ import edu.wpi.first.math.controller.ArmFeedforward;
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.subsystems.AlgaeIntake.Constants.Position;
 
@@ -155,49 +156,112 @@ public class AlgaeIntake extends SubsystemBase implements BaseIntake, BaseSingle
     public Command moveToCurrentGoalCommand() {
         return run(() -> {
             setVoltage(PID.calculate(getPosition()) + Feedforward.calculate(PID.getGoal().position, PID.getGoal().velocity));
-        });
+        }).withName("AlgaeIntake.moveToCurrentGoalCommand");
     }
 
+    /** Move the algae intake arm mechanism to a defined position by
+     * setting the goal and moving to the goal until reached
+     * @param goalPositionSupplier a supplier of an instance of the position enum
+     * @return the command
+     */
     @Override
     public Command moveToPositionCommand(Supplier<Position> goalPositionSupplier) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'moveToPositionCommand'");
+        return Commands.sequence(
+            runOnce(() -> {
+                PID.setGoal(goalPositionSupplier.get().position);
+            }),
+            moveToCurrentGoalCommand().until(() -> PID.atGoal())
+        ).withName("AlgaeIntake.moveToPositionCommand");
     }
 
+    /** Move the algae intake arm mechanism to any position by
+     * setting the goal and moving to the goal until reached
+     * @param goalPositionSupplier a supplier of the position in radians
+     * @return the command
+    */
     @Override
     public Command moveToArbitraryPositionCommand(Supplier<Double> goalPositionSupplier) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'moveToArbitraryPositionCommand'");
+        return Commands.sequence(
+            runOnce(() -> {
+                PID.setGoal(goalPositionSupplier.get());
+            }),
+            moveToCurrentGoalCommand().until(() -> PID.atGoal())
+        ).withName("AlgaeIntake.moveToArbitraryPositionCommand");
     }
 
+    /** Move the algae intake arm mechanism to the current position plus a delta by
+     * setting the goal and moving to the goal until reached
+     * @param delta a supplier of the delta in radians
+     * @return the command
+    */
     @Override
     public Command movePositionDeltaCommand(Supplier<Double> delta) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'movePositionDeltaCommand'");
+        return Commands.sequence(
+            runOnce(() -> {
+                PID.setGoal(PID.getGoal().position + delta.get());
+            }),
+            moveToCurrentGoalCommand().until(() -> PID.atGoal())
+        ).withName("AlgaeIntake.movePositionDeltaCommand");
     }
 
+    /** Hold the algae intake arm mechanism at it's current position by
+     * setting the goal to the current goal and moving toward it until cancelled
+     * @return the command
+    */
     @Override
     public Command holdCurrentPositionCommand() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'holdCurrentPositionCommand'");
+        return Commands.sequence(
+            runOnce(() -> {
+                PID.setGoal(PID.getGoal().position);
+            }),
+            moveToCurrentGoalCommand()
+        ).withName("AlgaeIntake.holdCurrentPositionCommand");
     }
 
+    /** Instantly set reset the encoder positions of the algae intake arm mechanism 
+     * @return the command
+    */
     @Override
     public Command resetPositionCommand() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'resetPositionCommand'");
+        return runOnce(() -> {
+            resetPosition();
+        }).withName("resetPositionCommand");
     }
 
+    /** Explicitly set the speed of the algae intake arm mechanism,
+     * overridding PID & feedforward control
+     * @param speed the speed [-1, 1]
+     * @return the command
+     */
     @Override
     public Command setOverridenSpeedCommand(Supplier<Double> speed) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'setOverridenSpeedCommand'");
+        return runEnd(() -> {
+            setVoltage(speed.get() * 12);
+        }, () -> {
+            setVoltage(0);
+        }).withName("AlgaeIntake.setOverridenSpeedCommand");
     }
 
+    /** Coast the motors of the robot for manual movement by
+     * stopping them, setting them to coast, and then setting them back to break on command end
+     * @return the command
+     */
     @Override
     public Command coastMotorsCommand() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'coastMotorsCommand'");
+        return runOnce(() -> {
+            armL.stopMotor();
+            armR.stopMotor();
+        }).andThen(() -> {
+            armLConfig.idleMode(IdleMode.kCoast);
+            armRConfig.idleMode(IdleMode.kCoast);
+            armL.configure(armLConfig, ResetMode.kResetSafeParameters, PersistMode.kNoPersistParameters);
+            armR.configure(armRConfig, ResetMode.kResetSafeParameters, PersistMode.kNoPersistParameters);
+        }).finallyDo(() -> {
+            armLConfig.idleMode(IdleMode.kBrake);
+            armRConfig.idleMode(IdleMode.kBrake);
+            armL.configure(armLConfig, ResetMode.kResetSafeParameters, PersistMode.kNoPersistParameters);
+            armR.configure(armRConfig, ResetMode.kResetSafeParameters, PersistMode.kNoPersistParameters);
+        });
     }
 
     @Override
