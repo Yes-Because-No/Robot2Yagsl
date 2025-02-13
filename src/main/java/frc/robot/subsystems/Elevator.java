@@ -240,7 +240,7 @@ public class Elevator extends SubsystemBase implements BaseLinearMechanism<Posit
 
     @Override
     public Command movePositionDeltaCommand(Supplier<Double> delta) {
-        return moveToArbitraryPositionCommand(()->getPosition()+delta.get())
+        return moveToArbitraryPositionCommand(()->elevatorPidController.getGoal().position+delta.get())
             .withName("elevator.movePositionDelta");
     }
 
