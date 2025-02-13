@@ -160,10 +160,18 @@ public class AlgaeIntake extends SubsystemBase implements BaseIntake, BaseSingle
         return armLEncoder.getPosition();
     }
 
+    /**
+     * Gets the velocity of the {@link #armLEncoder encoder}
+     * @return The velocity, in degrees per second, as a double
+     */
     public double getVelocity(){
         return armLEncoder.getVelocity();
     }
 
+    /**
+     * Gets the voltage applied to the {@link #armL motor}
+     * @return Voltage applied to the motor, as a double
+     */
     public double getVoltage(){
         return armL.getAppliedOutput();
     }
@@ -321,5 +329,26 @@ public class AlgaeIntake extends SubsystemBase implements BaseIntake, BaseSingle
         }, () -> {
             bar.stopMotor();
         });
+    }
+
+    /**
+     * Creates a command for the sysId quasistatic test, which gradually speeds up
+     * the mechanism to eliminate variation from acceleration
+     * @see https://docs.wpilib.org/en/stable/docs/software/advanced-controls/system-identification/creating-routine.html
+     * @param direction Direction to run the motors in
+     * @return Command that runs the quasistatic test
+     */
+    public Command sysIdQuasistatic(SysIdRoutine.Direction direction){
+        return sysIdRoutine.quasistatic(direction);
+    }
+    /**
+     * Creates a command for the sysId dynamic test, which will step up the speed to
+     * see how the mechanism behaves during acceleration
+     * @see https://docs.wpilib.org/en/stable/docs/software/advanced-controls/system-identification/creating-routine.html
+     * @param direction Direction to run the motors in
+     * @return Command that runs the dynamic test
+     */
+    public Command sysIdDynamic(SysIdRoutine.Direction direction){
+        return sysIdRoutine.dynamic(direction);
     }
 }
