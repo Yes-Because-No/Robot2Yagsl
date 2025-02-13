@@ -192,8 +192,21 @@ public class Climber extends SubsystemBase implements BaseIntake, BaseSingleJoin
 
     @Override
     public Command coastMotorsCommand() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'coastMotorsCommand'");
+        return runOnce(()->{
+            arm.stopMotor();
+            jaw.stopMotor();
+        }).andThen(()->{
+            armConfig.idleMode(IdleMode.kCoast);
+            jawConfig.idleMode(IdleMode.kCoast);
+            arm.configure(armConfig, ResetMode.kResetSafeParameters, PersistMode.kNoPersistParameters);
+            jaw.configure(jawConfig, ResetMode.kResetSafeParameters, PersistMode.kNoPersistParameters);
+
+        }).finallyDo(()->{
+            armConfig.idleMode(IdleMode.kBrake);
+            jawConfig.idleMode(IdleMode.kBrake);
+            arm.configure(armConfig, ResetMode.kResetSafeParameters, PersistMode.kNoPersistParameters);
+            jaw.configure(jawConfig, ResetMode.kResetSafeParameters, PersistMode.kNoPersistParameters);
+        });
     }
 
     @Override
