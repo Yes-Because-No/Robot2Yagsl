@@ -1,5 +1,9 @@
 package frc.robot.subsystems;
 
+import static edu.wpi.first.units.Units.Degrees;
+import static edu.wpi.first.units.Units.DegreesPerSecond;
+import static edu.wpi.first.units.Units.Volts;
+
 import java.util.function.Supplier;
 
 import com.revrobotics.RelativeEncoder;
@@ -16,9 +20,13 @@ import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.ArmFeedforward;
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
+import edu.wpi.first.units.measure.MutAngle;
+import edu.wpi.first.units.measure.MutAngularVelocity;
+import edu.wpi.first.units.measure.MutVoltage;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.subsystems.AlgaeIntake.Constants.Position;
 
 /** The subsystem for the robot's algae intake and scoring mechanism */
@@ -94,6 +102,23 @@ public class AlgaeIntake extends SubsystemBase implements BaseIntake, BaseSingle
         new TrapezoidProfile.Constraints(Constants.Feedback.MAX_VELOCITY, Constants.Feedback.MAX_ACCEL));
     private final ArmFeedforward Feedforward = new ArmFeedforward(Constants.Feedforward.kS, Constants.Feedforward.kG, Constants.Feedforward.kV, Constants.Feedforward.kA);
 
+    private final MutVoltage sysIdVoltage = Volts.mutable(0);
+    private final MutAngle sysIdAngle = Degrees.mutable(0);
+    private final MutAngularVelocity sysIdAngularVelocity = DegreesPerSecond.mutable(0);
+
+    private final SysIdRoutine sysIdRoutine = new SysIdRoutine(
+        new SysIdRoutine.Config(),
+        new SysIdRoutine.Mechanism(
+            (voltage) -> {
+                setVoltage(voltage.magnitude());
+            },
+            (log) -> {
+                log.motor("arm").voltage(sysIdVoltage.mut_replace(getVoltage(), Volts))
+                        .angularPosition(sysIdAngle.mut_replace(getPosition(), Degrees))
+                        .angularVelocity(sysIdAngularVelocity.mut_replace(getVelocity(), DegreesPerSecond));
+            },
+        this)
+    );
     /** The constructor for the coral intake subsystem
      * @return the object
      */
@@ -133,6 +158,14 @@ public class AlgaeIntake extends SubsystemBase implements BaseIntake, BaseSingle
     @Override
     public double getPosition() {
         return armLEncoder.getPosition();
+    }
+
+    public double getVelocity(){
+        return armLEncoder.getVelocity();
+    }
+
+    public double getVoltage(){
+        return armL.getAppliedOutput();
     }
 
     /** Resets the encoder positions of the algae intake arm mechanism */
