@@ -113,7 +113,7 @@ public class AlgaeIntake extends SubsystemBase implements BaseIntake, BaseSingle
                 setVoltage(voltage.magnitude());
             },
             (log) -> {
-                log.motor("arm").voltage(sysIdVoltage.mut_replace(getVoltage(), Volts))
+                log.motor("AlgaeIntakeArm").voltage(sysIdVoltage.mut_replace(getVoltage(), Volts))
                         .angularPosition(sysIdAngle.mut_replace(getPosition(), Degrees))
                         .angularVelocity(sysIdAngularVelocity.mut_replace(getVelocity(), DegreesPerSecond));
             },
