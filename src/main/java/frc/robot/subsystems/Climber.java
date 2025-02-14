@@ -1,5 +1,9 @@
 package frc.robot.subsystems;
 
+import static edu.wpi.first.units.Units.Degrees;
+import static edu.wpi.first.units.Units.DegreesPerSecond;
+import static edu.wpi.first.units.Units.Volts;
+
 import java.util.function.Supplier;
 
 import com.revrobotics.RelativeEncoder;
@@ -16,9 +20,13 @@ import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.ArmFeedforward;
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
+import edu.wpi.first.units.measure.MutAngle;
+import edu.wpi.first.units.measure.MutAngularVelocity;
+import edu.wpi.first.units.measure.MutVoltage;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.subsystems.Climber.Constants.Position;
 
 /** The subsystem for the robot's climber mechanism */
@@ -87,11 +95,31 @@ public class Climber extends SubsystemBase implements BaseIntake, BaseSingleJoin
     //Create controller objects
     private final TrapezoidProfile.Constraints Constraints =
       new TrapezoidProfile.Constraints(Constants.feedBackward.kMaxVelocity, Constants.feedBackward.kMaxAcceleration);
-  private final ProfiledPIDController PID =
+    private final ProfiledPIDController PID =
       new ProfiledPIDController(Constants.feedBackward.kP, Constants.feedBackward.kI, Constants.feedBackward.kD, Constraints);
-  private final ArmFeedforward feedforward = 
+    private final ArmFeedforward feedforward = 
       new ArmFeedforward(Constants.feedForward.kS, Constants.feedForward.kG, Constants.feedForward.kV, Constants.feedForward.kA);
 
+    //SysID
+    private final MutVoltage sysIdVoltage = Volts.mutable(0);
+    private final MutAngle sysIdAngle = Degrees.mutable(0);
+    private final MutAngularVelocity sysIdAngularVelocity = DegreesPerSecond.mutable(0);
+
+    private final SysIdRoutine sysIdRoutine = new SysIdRoutine(
+        new SysIdRoutine.Config(),
+        new SysIdRoutine.Mechanism(
+            (voltage) -> {
+                setVoltage(voltage.magnitude());
+            },
+            (log) -> {
+                log.motor("ClimberArm").voltage(sysIdVoltage.mut_replace(getVoltage(), Volts))
+                .angularPosition(sysIdAngle.mut_replace(getPosition(), Degrees))
+                .angularVelocity(sysIdAngularVelocity.mut_replace(getVelocity(), DegreesPerSecond));
+
+            },
+            this
+        )
+    );
     //Constructor
     public Climber(){
         armConfig
@@ -117,6 +145,23 @@ public class Climber extends SubsystemBase implements BaseIntake, BaseSingleJoin
     @Override
     public double getPosition() {
         return armEncoder.getPosition();
+    }
+    /**
+     * Gets the velocity of the {@link #armLEncoder encoder}
+     * 
+     * @return The velocity, in degrees per second, as a double
+     */
+    public double getVelocity() {
+        return armEncoder.getVelocity();
+    }
+
+    /**
+     * Gets the voltage applied to the {@link #armL motor}
+     * 
+     * @return voltage applied to the motor, as a double
+     */
+    public double getVoltage() {
+        return arm.getAppliedOutput();
     }
     /**
      * Reset position of arm to reset position
@@ -232,7 +277,7 @@ public class Climber extends SubsystemBase implements BaseIntake, BaseSingleJoin
         }).finallyDo(()->{
             armConfig.idleMode(IdleMode.kBrake);
             arm.configure(armConfig, ResetMode.kResetSafeParameters, PersistMode.kNoPersistParameters);
-        }).withName("Climber.coastMo    torsCommand");
+        }).withName("Climber.coastMotorsCommand");
     }
 
     @Override
@@ -257,5 +302,28 @@ public class Climber extends SubsystemBase implements BaseIntake, BaseSingleJoin
         }, () -> {
             jaw.stopMotor();
         }).withName("Climber.reverseRollersCommand");
+    }
+     /**
+     * Creates a command for the sysId quasistatic test, which gradually speeds up
+     * the mechanism to eliminate variation from acceleration
+     * 
+     * @see https://docs.wpilib.org/en/stable/docs/software/advanced-controls/system-identification/creating-routine.html
+     * @param direction Direction to run the motors in
+     * @return Command that runs the quasistatic test
+     */
+    public Command sysIdQuasistatic(SysIdRoutine.Direction direction) {
+        return sysIdRoutine.quasistatic(direction);
+    }
+
+    /**
+     * Creates a command for the sysId dynamic test, which will step up the speed to
+     * see how the mechanism behaves during acceleration
+     * 
+     * @see https://docs.wpilib.org/en/stable/docs/software/advanced-controls/system-identification/creating-routine.html
+     * @param direction Direction to run the motors in
+     * @return Command that runs the dynamic test
+     */
+    public Command sysIdDynamic(SysIdRoutine.Direction direction) {
+        return sysIdRoutine.dynamic(direction);
     }
 }
