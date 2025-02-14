@@ -232,7 +232,7 @@ public class Climber extends SubsystemBase implements BaseIntake, BaseSingleJoin
         }).finallyDo(()->{
             armConfig.idleMode(IdleMode.kBrake);
             arm.configure(armConfig, ResetMode.kResetSafeParameters, PersistMode.kNoPersistParameters);
-        }).withName("Climber.coastMotorsCommand");
+        }).withName("Climber.coastMo    torsCommand");
     }
 
     @Override
