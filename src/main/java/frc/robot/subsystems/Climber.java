@@ -83,18 +83,14 @@ public class Climber extends SubsystemBase implements BaseIntake, BaseSingleJoin
     //Create config objects
     private final SparkMaxConfig armConfig = new SparkMaxConfig();
     private final SparkMaxConfig jawConfig = new SparkMaxConfig();
-    //private final EncoderConfig armEncoderConfig = new EncoderConfig();
-    //apparently this isnt supposed to be here
 
     //Create controller objects
-  
-
     private final TrapezoidProfile.Constraints Constraints =
       new TrapezoidProfile.Constraints(Constants.feedBackward.kMaxVelocity, Constants.feedBackward.kMaxAcceleration);
   private final ProfiledPIDController PID =
       new ProfiledPIDController(Constants.feedBackward.kP, Constants.feedBackward.kI, Constants.feedBackward.kD, Constraints);
   private final ArmFeedforward feedforward = 
-  new ArmFeedforward(Constants.feedForward.kS, Constants.feedForward.kG, Constants.feedForward.kV, Constants.feedForward.kA);
+      new ArmFeedforward(Constants.feedForward.kS, Constants.feedForward.kG, Constants.feedForward.kV, Constants.feedForward.kA);
 
     //Constructor
     public Climber(){
@@ -103,8 +99,8 @@ public class Climber extends SubsystemBase implements BaseIntake, BaseSingleJoin
         .inverted(Constants.INVERSION.ARM)
         .idleMode(IdleMode.kBrake)
         .encoder
-            .positionConversionFactor(Constants.GEAR_RATIO.ARM * (0))
-            .velocityConversionFactor(Constants.GEAR_RATIO.ARM * (0));//TODO
+            .positionConversionFactor(Constants.GEAR_RATIO.ARM * (2 * Math.PI))
+            .velocityConversionFactor(Constants.GEAR_RATIO.ARM * (2 * Math.PI));
 
         jawConfig
         .smartCurrentLimit(Constants.CURRENT_LIMITS.JAW)
@@ -115,30 +111,41 @@ public class Climber extends SubsystemBase implements BaseIntake, BaseSingleJoin
         jaw.configure(jawConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
     }
     
-
+    /** Get position of arm
+     * @return arm position in radians.
+     */
     @Override
     public double getPosition() {
         return armEncoder.getPosition();
     }
-
+    /**
+     * Reset position of arm to reset position
+     */
     @Override
     public void resetPosition() {
         armEncoder.setPosition(Constants.Position.ARM_RESET.position);
     }
-
+    /**Sets voltage within minimum and maximum
+     * @param voltage [-12.12]
+     */
     @Override
     public void setVoltage(double voltage) {
         arm.setVoltage(MathUtil.clamp(voltage, -12, 12));
 
     }
-
+    /**Move climber arm toward current goal 
+     * @return the command
+    */
     @Override
     public Command moveToCurrentGoalCommand() {
         return run(() -> {
             setVoltage(PID.calculate(getPosition()) + feedforward.calculate(PID.getGoal().position, PID.getGoal().velocity));
         }).withName("Climber.moveToCurrentGoalCommand");
     }
-
+    /**Moves arm to the preset position and sets the goal until it is reached
+     * @param goalPositionSupplier supplies position of enum 
+     * @return the command
+     */
     @Override
     public Command moveToPositionCommand(Supplier<Position> goalPositionSupplier) {
         return Commands.sequence(
@@ -148,7 +155,10 @@ public class Climber extends SubsystemBase implements BaseIntake, BaseSingleJoin
             moveToCurrentGoalCommand().until(()-> PID.atGoal())
         ).withName("Climber.moveToPositionCommand");
     }
-
+    /**Moves arm to position that is set, setting the goal until it's reached
+     * @param goalPositionSupplier supplies posiiton in radians
+     * @return the command
+     */
     @Override
     public Command moveToArbitraryPositionCommand(Supplier<Double> goalPositionSupplier) {
         return Commands.sequence(
@@ -158,7 +168,11 @@ public class Climber extends SubsystemBase implements BaseIntake, BaseSingleJoin
             moveToCurrentGoalCommand().until(() -> PID.atGoal())
             ).withName("Climber.moveToArbitraryPositionCommand");
     }
-
+    /**Moves arm to current position plus a delta
+     * sets a goal and moves it to the goal until it is reached
+     * @param delta a supplier of the delta in radians
+     * @return the command
+    */
     @Override
     public Command movePositionDeltaCommand(Supplier<Double> delta) {
         return Commands.sequence(
@@ -168,7 +182,9 @@ public class Climber extends SubsystemBase implements BaseIntake, BaseSingleJoin
             moveToCurrentGoalCommand().until(() -> PID.atGoal())
         ).withName("Climber.movePositionDeltaCommand");
     }
-
+    /**Keeps arm at its position by setting the goal and moving to the goal
+     * @return the command
+     */
     @Override
     public Command holdCurrentPositionCommand() {
         return Commands.sequence(
@@ -179,14 +195,20 @@ public class Climber extends SubsystemBase implements BaseIntake, BaseSingleJoin
             ).withName("Climber.holdCurrentPositionCommand");
         }
     
-
+    /**Resets encoder positions to reset state.
+     * @return the command
+     */
     @Override
     public Command resetPositionCommand() {
         return runOnce(()->{
             resetPosition();
-        }).withName("resetPositionCommand");
+        }).withName("Climber.resetPositionCommand");
     }
-
+    /**Explicity sets speed of climber arm 
+     * overrides pid and feedforward
+     * @param speed the speed [-1, 1]
+     * @return the command
+     */
     @Override
     public Command setOverridenSpeedCommand(Supplier<Double> speed) {
         return runEnd(() -> {
@@ -195,7 +217,10 @@ public class Climber extends SubsystemBase implements BaseIntake, BaseSingleJoin
             setVoltage(0);
         }).withName("Climber.setOverridenSpeedCommand");
     }
-
+    /** Coast the motors of the robot for manual movement by
+     * stopping them, setting them to coast, and then setting them back to break on command end
+     * @return the command
+     */
     @Override
     public Command coastMotorsCommand() {
         return runOnce(()->{
@@ -207,26 +232,30 @@ public class Climber extends SubsystemBase implements BaseIntake, BaseSingleJoin
         }).finallyDo(()->{
             armConfig.idleMode(IdleMode.kBrake);
             arm.configure(armConfig, ResetMode.kResetSafeParameters, PersistMode.kNoPersistParameters);
-        });
+        }).withName("Climber.coastMotorsCommand");
     }
 
     @Override
-    //For jaw motors only
+    /** Runs the rollers of the coral intake mechanism forwards
+    * @return the command
+    */
     public Command runRollersCommand() {
         return startEnd (() ->{
             jaw.setVoltage(Constants.VOLTAGE);
         }, () -> {
             jaw.stopMotor();
-        }).withName("ClimberArm.runRollersCommand");
+        }).withName("Climber.runRollersCommand");
     }
 
     @Override
-    //For jaw motors only
+    /** Runs the rollers of the coral intake mechanism in reverse
+    * @return the command
+    */
     public Command reverseRollersCommand() {
         return startEnd (() ->{
             jaw.setVoltage(-Constants.VOLTAGE);
         }, () -> {
             jaw.stopMotor();
-        }).withName("ClimberArm.reverseRollersCommand");
+        }).withName("Climber.reverseRollersCommand");
     }
 }
