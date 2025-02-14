@@ -51,8 +51,8 @@ public class AlgaeIntake extends SubsystemBase implements BaseIntake, BaseSingle
         }
 
         public static final class GEAR_RATIOS {
-            public static final double ARM = 0; //TODO get actual gear ratio
-            public static final double BAR = 0; //TODO get actual gear ratio
+            public static final double ARM = (4.0 / 1.0);
+            public static final double BAR = (3.0 / 1.0);
         }
 
         public static final class Feedback {
@@ -102,6 +102,7 @@ public class AlgaeIntake extends SubsystemBase implements BaseIntake, BaseSingle
         new TrapezoidProfile.Constraints(Constants.Feedback.MAX_VELOCITY, Constants.Feedback.MAX_ACCEL));
     private final ArmFeedforward Feedforward = new ArmFeedforward(Constants.Feedforward.kS, Constants.Feedforward.kG, Constants.Feedforward.kV, Constants.Feedforward.kA);
 
+    // SysId stuffs
     private final MutVoltage sysIdVoltage = Volts.mutable(0);
     private final MutAngle sysIdAngle = Degrees.mutable(0);
     private final MutAngularVelocity sysIdAngularVelocity = DegreesPerSecond.mutable(0);
@@ -117,8 +118,10 @@ public class AlgaeIntake extends SubsystemBase implements BaseIntake, BaseSingle
                         .angularPosition(sysIdAngle.mut_replace(getPosition(), Degrees))
                         .angularVelocity(sysIdAngularVelocity.mut_replace(getVelocity(), DegreesPerSecond));
             },
-        this)
+            this
+        )
     );
+
     /** The constructor for the coral intake subsystem
      * @return the object
      */
