@@ -171,14 +171,20 @@ public class Climber extends SubsystemBase implements BaseIntake, BaseSingleJoin
 
     @Override
     public Command holdCurrentPositionCommand() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'holdCurrentPositionCommand'");
-    }
+        return Commands.sequence(
+            runOnce(() -> {
+                PID.setGoal(PID.getGoal().position);
+            }),
+            moveToCurrentGoalCommand()
+            ).withName("Climber.holdCurrentPositionCommand");
+        }
+    
 
     @Override
     public Command resetPositionCommand() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'resetPositionCommand'");
+        return runOnce(()->{
+            resetPosition();
+        }).withName("resetPositionCommand");
     }
 
     @Override
@@ -194,18 +200,13 @@ public class Climber extends SubsystemBase implements BaseIntake, BaseSingleJoin
     public Command coastMotorsCommand() {
         return runOnce(()->{
             arm.stopMotor();
-            jaw.stopMotor();
         }).andThen(()->{
             armConfig.idleMode(IdleMode.kCoast);
-            jawConfig.idleMode(IdleMode.kCoast);
             arm.configure(armConfig, ResetMode.kResetSafeParameters, PersistMode.kNoPersistParameters);
-            jaw.configure(jawConfig, ResetMode.kResetSafeParameters, PersistMode.kNoPersistParameters);
 
         }).finallyDo(()->{
             armConfig.idleMode(IdleMode.kBrake);
-            jawConfig.idleMode(IdleMode.kBrake);
             arm.configure(armConfig, ResetMode.kResetSafeParameters, PersistMode.kNoPersistParameters);
-            jaw.configure(jawConfig, ResetMode.kResetSafeParameters, PersistMode.kNoPersistParameters);
         });
     }
 
