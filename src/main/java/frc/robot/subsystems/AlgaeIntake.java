@@ -187,7 +187,9 @@ public class AlgaeIntake extends SubsystemBase implements BaseIntake, BaseSingle
         return armL.getAppliedOutput();
     }
 
-    /** Resets the encoder positions of the algae intake arm mechanism */
+    /** 
+     * Resets the encoder positions of the algae intake arm mechanism 
+     */
     @Override
     public void resetPosition() {
         armLEncoder.setPosition(Constants.Position.ARM_RESET.position);
