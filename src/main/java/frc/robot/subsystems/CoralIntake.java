@@ -38,6 +38,7 @@ public class CoralIntake extends SubsystemBase implements BaseIntake {
     private static SparkMax motorR = new SparkMax(Constants.CAN_IDS.MOTOR_R, MotorType.kBrushless);
     private static SparkMaxConfig motorRConfig = new SparkMaxConfig();
 
+    private boolean toggled = false;
 
     /** The constructor for the coralIntake subsystem
      * @return the object
@@ -83,5 +84,32 @@ public class CoralIntake extends SubsystemBase implements BaseIntake {
             motorL.stopMotor();
             motorR.stopMotor();
         }).withName("CoralIntake.reverseRollersCommand");
+    }
+
+
+    public void runRollers(){
+        motorL.setVoltage(Constants.VOLTAGE);
+        motorR.setVoltage(Constants.VOLTAGE); 
+    }
+
+    public void reverseRollers(){
+        motorL.setVoltage(-Constants.VOLTAGE);
+        motorR.setVoltage(-Constants.VOLTAGE);
+    }
+
+    public void stopRollers(){
+        motorL.stopMotor();
+        motorR.stopMotor();
+    }
+
+    public void toggleRollers(){
+        if(toggled){
+            runRollers();
+        }else{
+            stopRollers();
+        }
+
+        toggled = !toggled;
+
     }
 }

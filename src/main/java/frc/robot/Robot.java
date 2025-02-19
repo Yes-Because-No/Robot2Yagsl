@@ -5,16 +5,28 @@
 package frc.robot;
 
 import edu.wpi.first.wpilibj.TimedRobot;
+import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
+
+import frc.robot.subsystems.CoralIntake;
 
 public class Robot extends TimedRobot {
   private Command m_autonomousCommand;
 
   private final RobotContainer m_robotContainer;
 
+
+  private CoralIntake coralIntake;
+  private XboxController controller;
+
+  private boolean rollersToggled;
+
+
   public Robot() {
     m_robotContainer = new RobotContainer();
+    coralIntake = new CoralIntake();
+    controller = new XboxController(Constants.CONTROLLER_PORT);
   }
 
   @Override
@@ -54,7 +66,20 @@ public class Robot extends TimedRobot {
   }
 
   @Override
-  public void teleopPeriodic() {}
+  public void teleopPeriodic() {
+    if(controller.getRightBumperButton()){
+      if(!rollersToggled){
+        rollersToggled = true;
+        coralIntake.toggleRollers();
+      }else{
+        coralIntake.stopRollers();
+      }
+      
+    }else{
+      rollersToggled = false;
+    }
+    
+  }
 
   @Override
   public void teleopExit() {}
