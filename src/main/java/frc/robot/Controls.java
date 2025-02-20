@@ -33,9 +33,9 @@ public class Controls {
         
         controller.povUp().whileTrue(elevator.movePositionDeltaCommand(() -> 0.5));
         controller.povDown().whileTrue(elevator.movePositionDeltaCommand(() -> 0.5));
-        //arbitrary values 0.5 need refining
 
-        
+        controller.x().onTrue(climber.movePositionDeltaCommand(() -> 0.5));
+        //arbitrary values 0.5 need refining
     }
 
 
