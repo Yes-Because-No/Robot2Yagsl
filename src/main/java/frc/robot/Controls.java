@@ -6,8 +6,11 @@ import frc.robot.subsystems.Elevator;
 import frc.robot.subsystems.AlgaeIntake;
 import frc.robot.subsystems.Climber;
 
+import java.util.concurrent.locks.Condition;
+
 import com.techhounds.houndutil.houndlib.oi.CommandVirpilJoystick;
 
+import edu.wpi.first.wpilibj2.command.ConditionalCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 
 
@@ -21,8 +24,17 @@ public class Controls {
     private static void configureOperatorControls(int port, Drivetrain drivetrain, CoralIntake coralintake, Elevator elevator, AlgaeIntake algaeintake, Climber climber){
         
         CommandXboxController controller = new CommandXboxController(port);
+
+        ConditionalCommand runIntakeCommand = new ConditionalCommand(algaeintake.runRollersCommand(), coralintake.runRollersCommand(), () -> controller.getHID().getRightBumperButton());
+        ConditionalCommand runOuttake = new ConditionalCommand(algaeintake.reverseRollersCommand(), coralintake.reverseRollersCommand(), () -> controller.getHID().getRightBumperButton());
         
+        controller.b().whileTrue(runIntakeCommand);
+        controller.a().whileTrue(runOuttake);
         
+        controller.povUp().whileTrue(elevator.movePositionDeltaCommand(() -> 0.5));
+        controller.povDown().whileTrue(elevator.movePositionDeltaCommand(() -> 0.5));
+        //arbitrary values 0.5 need refining
+
         
     }
 
