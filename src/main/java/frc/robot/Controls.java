@@ -35,6 +35,8 @@ public class Controls {
         controller.povDown().whileTrue(elevator.movePositionDeltaCommand(() -> 0.5));
 
         controller.x().onTrue(climber.movePositionDeltaCommand(() -> 0.5));
+
+        drivetrain.setDefaultCommand(drivetrain.teleopDriveCommand(controller::getLeftX, controller::getRightY, () -> 0));
         //arbitrary values 0.5 need refining
     }
 
