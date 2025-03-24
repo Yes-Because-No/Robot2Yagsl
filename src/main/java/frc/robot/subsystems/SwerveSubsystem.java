@@ -56,6 +56,7 @@ public class SwerveSubsystem extends SubsystemBase {
 
     public SwerveSubsystem(File directory) {
         boolean blueAlliance = false;
+        // poses from example, can be changed if neccesary
         Pose2d startingPose = blueAlliance
                 ? new Pose2d(new Translation2d(Meter.of(1), Meter.of(4)), Rotation2d.fromRadians(0))
                 : new Pose2d(new Translation2d(Meter.of(16), Meter.of(4)), Rotation2d.fromRadians(Math.PI));
@@ -84,9 +85,8 @@ public class SwerveSubsystem extends SubsystemBase {
         //enable to resynchronize absolute and relative encoders when not moving for a few seconds
         swerveDrive.setModuleEncoderAutoSynchronize(false, 1);
 
-        //setupPathPlanner() - once implemented
-        //RobotModeTriggers.autonomous().onTrue(Commands.runOnce(this::zeroGyroWithAlliance)); - once zeroGyroWithAlliance implemented
-
+        setupPathPlanner();
+        RobotModeTriggers.autonomous().onTrue(Commands.runOnce(this::zeroGyroWithAlliance));
     }
 
     @Override
@@ -354,7 +354,7 @@ public class SwerveSubsystem extends SubsystemBase {
      * facing toward 0.
      */
     public void zeroGyro() {
-        throw new UnsupportedOperationException("Not implemented");
+        swerveDrive.zeroGyro();
     }
 
     /**
@@ -364,7 +364,8 @@ public class SwerveSubsystem extends SubsystemBase {
      *         available.
      */
     private boolean isRedAlliance() {
-        throw new UnsupportedOperationException("Not implemented");
+        Optional<DriverStation.Alliance> alliance = DriverStation.getAlliance();
+        return alliance.isPresent() ? alliance.get() == DriverStation.Alliance.Red : false;
     }
 
     /**
@@ -374,8 +375,10 @@ public class SwerveSubsystem extends SubsystemBase {
      * If red alliance rotate the robot 180 after the drviebase zero command
      */
     public void zeroGyroWithAlliance() {
-        throw new UnsupportedOperationException("Not implemented");
-
+        zeroGyro();
+        if (isRedAlliance()) {
+            resetOdometry(new Pose2d(getPose().getTranslation(), Rotation2d.fromRadians(Math.PI)));
+        }
     }
 
     /**
@@ -384,7 +387,7 @@ public class SwerveSubsystem extends SubsystemBase {
      * @param brake True to set motors to brake mode, false for coast.
      */
     public void setMotorBrake(boolean brake) {
-        throw new UnsupportedOperationException("Not implemented");
+        swerveDrive.setMotorIdleMode(brake);
     }
 
     /**
@@ -396,7 +399,7 @@ public class SwerveSubsystem extends SubsystemBase {
      * @return The yaw angle
      */
     public Rotation2d getHeading() {
-        throw new UnsupportedOperationException("Not implemented");
+        return getPose().getRotation();
     }
 
     /**
@@ -411,7 +414,15 @@ public class SwerveSubsystem extends SubsystemBase {
      * @return {@link ChassisSpeeds} which can be sent to the Swerve Drive.
      */
     public ChassisSpeeds getTargetSpeeds(double xInput, double yInput, double headingX, double headingY) {
-        throw new UnsupportedOperationException("Not implemented");
+        Translation2d scaledInputs = SwerveMath.cubeTranslation(new Translation2d(xInput, yInput));
+
+        return swerveDrive.swerveController.getTargetSpeeds(
+                scaledInputs.getX(),
+                scaledInputs.getY(),
+                headingX,
+                headingY,
+                getHeading().getRadians(),
+                Constants.MAX_SPEED);
     }
 
     /**
@@ -425,7 +436,14 @@ public class SwerveSubsystem extends SubsystemBase {
      * @return {@link ChassisSpeeds} which can be sent to the Swerve Drive.
      */
     public ChassisSpeeds getTargetSpeeds(double xInput, double yInput, Rotation2d angle) {
-        throw new UnsupportedOperationException("Not implemented");
+        Translation2d scaledInputs = SwerveMath.cubeTranslation(new Translation2d(xInput, yInput));
+
+        return swerveDrive.swerveController.getTargetSpeeds(
+                scaledInputs.getX(),
+                scaledInputs.getY(),
+                angle.getRadians(),
+                getHeading().getRadians(),
+                Constants.MAX_SPEED);
     }
 
     /**
@@ -434,7 +452,7 @@ public class SwerveSubsystem extends SubsystemBase {
      * @return A ChassisSpeeds object of the current field-relative velocity
      */
     public ChassisSpeeds getFieldVelocity() {
-        throw new UnsupportedOperationException("Not implemented");
+        return swerveDrive.getFieldVelocity();
     }
 
     /**
@@ -443,7 +461,7 @@ public class SwerveSubsystem extends SubsystemBase {
      * @return A {@link ChassisSpeeds} object of the current velocity
      */
     public ChassisSpeeds getRobotVelocity() {
-        throw new UnsupportedOperationException("Not implemented");
+        return swerveDrive.getRobotVelocity();
     }
 
     /**
@@ -452,7 +470,7 @@ public class SwerveSubsystem extends SubsystemBase {
      * @return {@link SwerveController} from the {@link SwerveDrive}.
      */
     public SwerveController getSwerveController() {
-        throw new UnsupportedOperationException("Not implemented");
+        return swerveDrive.swerveController;
     }
 
     /**
@@ -461,14 +479,14 @@ public class SwerveSubsystem extends SubsystemBase {
      * @return The {@link SwerveDriveConfiguration} fpr the current drive.
      */
     public SwerveDriveConfiguration getSwerveDriveConfiguration() {
-        throw new UnsupportedOperationException("Not implemented");
+        return swerveDrive.swerveDriveConfiguration;
     }
 
     /**
      * Lock the swerve drive to prevent it from moving.
      */
     public void lock() {
-        throw new UnsupportedOperationException("Not implemented");
+        swerveDrive.lockPose();
     }
 
     /**
@@ -477,14 +495,7 @@ public class SwerveSubsystem extends SubsystemBase {
      * @return The heading as a {@link Rotation2d} angle
      */
     public Rotation2d getPitch() {
-        throw new UnsupportedOperationException("Not implemented");
-    }
-
-    /**
-     * Add a fake vision reading for testing purposes.
-     */
-    public void addFakeVisionReading() {
-        throw new UnsupportedOperationException("Not implemented");
+        return swerveDrive.getPitch();
     }
 
     /**
@@ -493,7 +504,7 @@ public class SwerveSubsystem extends SubsystemBase {
      * @return {@link SwerveDrive}
      */
     public SwerveDrive getSwerveDrive() {
-        throw new UnsupportedOperationException("Not implemented");
+        return swerveDrive;
     }
 
 }
