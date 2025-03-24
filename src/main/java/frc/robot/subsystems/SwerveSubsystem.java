@@ -1,6 +1,7 @@
 package frc.robot.subsystems;
 
 import static edu.wpi.first.units.Units.Meter;
+import static edu.wpi.first.units.Units.MetersPerSecond;
 
 import java.io.File;
 import java.io.IOException;
@@ -10,9 +11,17 @@ import java.util.function.Supplier;
 
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.commands.PathPlannerAuto;
+import com.pathplanner.lib.commands.PathfindingCommand;
+import com.pathplanner.lib.config.PIDConstants;
+import com.pathplanner.lib.config.RobotConfig;
+import com.pathplanner.lib.controllers.PPHolonomicDriveController;
+import com.pathplanner.lib.path.PathConstraints;
 import com.pathplanner.lib.path.PathPlannerPath;
+import com.pathplanner.lib.util.DriveFeedforwards;
+import com.pathplanner.lib.util.swerve.SwerveSetpoint;
 import com.pathplanner.lib.util.swerve.SwerveSetpointGenerator;
 
+import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
@@ -28,6 +37,8 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Config;
 import frc.robot.Constants;
+import frc.robot.Robot;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
@@ -103,7 +114,54 @@ public class SwerveSubsystem extends SubsystemBase {
      * Setup the pathplanner autobuilder
      */
     public void setupPathPlanner() {
+        RobotConfig config;
+        try {
+            config = RobotConfig.fromGUISettings();
 
+            final boolean enableFeedForward = true;
+            AutoBuilder.configure(
+                    this::getPose,
+                    this::resetOdometry,
+                    this::getRobotVelocity,
+                    (speedsRobotRelative, moduleFeedForwards) -> {
+                        if (enableFeedForward) {
+                            swerveDrive.drive(
+                                    speedsRobotRelative,
+                                    swerveDrive.kinematics.toSwerveModuleStates(speedsRobotRelative),
+                                    moduleFeedForwards.linearForces());
+                        } else {
+                            swerveDrive.setChassisSpeeds(speedsRobotRelative);
+                        }
+                    },
+                    // Method that will drive the robot given ROBOT RELATIVE ChassisSpeeds. Also
+                    // optionally outputs individual module feedforwards
+                    new PPHolonomicDriveController(
+                            // PPHolonomicController is the built in path following controller for holonomic
+                            // drive trains
+                            new PIDConstants(5.0, 0.0, 0.0),
+                            // Translation PID constants
+                            new PIDConstants(5.0, 0.0, 0.0)
+                    // Rotation PID constants
+                    ),
+                    config,
+                    () -> {
+                        // Boolean supplier that controls when the path will be mirrored for the red
+                        // alliance
+                        // This will flip the path being followed to the red side of the field.
+                        // THE ORIGIN WILL REMAIN ON THE BLUE SIDE
+
+                        var alliance = DriverStation.getAlliance();
+                        if (alliance.isPresent()) {
+                            return alliance.get() == DriverStation.Alliance.Red;
+                        }
+                        return false;
+                    },
+                    this);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        PathfindingCommand.warmupCommand().schedule();
     }
 
     /**
@@ -125,7 +183,18 @@ public class SwerveSubsystem extends SubsystemBase {
      * @return PathFinding command
      */
     public Command driveToPose(Pose2d pose) {
-        throw new UnsupportedOperationException("Not implemented");
+        PathConstraints constraints = new PathConstraints(
+            swerveDrive.getMaximumChassisVelocity(), 
+            4.0, 
+            swerveDrive.getMaximumChassisAngularVelocity(), 
+            Math.PI*4
+        );
+
+        return AutoBuilder.pathfindToPose(
+            pose, 
+            constraints,
+            MetersPerSecond.of(0)
+        );
     }
 
     /**
@@ -135,12 +204,51 @@ public class SwerveSubsystem extends SubsystemBase {
      * @param robotRelativeChassisSpeed Robot relative {@link ChassisSpeeds} to
      *                                  achieve.
      * @return {@link Command} to run.
-     * @throws IOException    If the PathPlanner GUI settings is invalid
-     * @throws ParseException If PathPlanner GUI settings is nonexistent.
+     * @throws IOException                           If the PathPlanner GUI settings
+     *                                               is invalid
+     * @throws ParseException                        If PathPlanner GUI settings is
+     *                                               nonexistent.
+     * @throws org.json.simple.parser.ParseException
      */
     private Command driveWithSetPointGenerator(Supplier<ChassisSpeeds> robotRelativeChassisSpeeds)
-            throws IOException, ParseException, UnsupportedOperationException {
-        throw new UnsupportedOperationException("Not implemented");
+            throws IOException, ParseException, org.json.simple.parser.ParseException {
+
+        SwerveSetpointGenerator setpointGenerator = new SwerveSetpointGenerator(
+            RobotConfig.fromGUISettings(), 
+            swerveDrive.getMaximumChassisAngularVelocity()
+        );
+
+        AtomicReference<SwerveSetpoint> prevSetpoint = new AtomicReference<>(
+                new SwerveSetpoint(
+                    swerveDrive.getRobotVelocity(), 
+                    swerveDrive.getStates(), 
+                    DriveFeedforwards.zeros(swerveDrive.getModules().length)
+                )
+        );
+
+        AtomicReference<Double> prevTime = new AtomicReference<>();
+
+        return startRun(()->{
+            prevTime.set(Timer.getFPGATimestamp());
+        },
+        ()->{
+            double newTime = Timer.getFPGATimestamp();
+            SwerveSetpoint newSetpoint = setpointGenerator.generateSetpoint(
+                prevSetpoint.get(), 
+                robotRelativeChassisSpeeds.get(), 
+                newTime - prevTime.get()
+            );
+
+            swerveDrive.drive(
+                newSetpoint.robotRelativeSpeeds(), 
+                newSetpoint.moduleStates(), 
+                newSetpoint.feedforwards().linearForces()
+            );
+
+            prevSetpoint.set(newSetpoint);
+            prevTime.set(newTime);
+
+            });
     }
 
     /**
@@ -150,26 +258,14 @@ public class SwerveSubsystem extends SubsystemBase {
      * @return Command to drive the robot using the setpoint generator.
      */
     public Command driveWithSetpointGeneratorFieldRelative(Supplier<ChassisSpeeds> fieldRelativeSpeeds) {
-        throw new UnsupportedOperationException("Not implemented");
-    }
-
-    /**
-     * Command to characterize the robot drive motors using SysId
-     *
-     * @return SysId Drive Command
-     */
-    public Command sysIdDriveMotorCommand() {
-        throw new UnsupportedOperationException("Not implemented");
-    }
-
-    /**
-     * Command to characterize the robot angle motors using SysId
-     *
-     * @return SysId Angle Command
-     */
-    public Command sysIdAngleMotorCommand() {
-        throw new UnsupportedOperationException("Not implemented");
-
+        try {
+            return driveWithSetPointGenerator(()->{
+                return ChassisSpeeds.fromFieldRelativeSpeeds(fieldRelativeSpeeds.get(), getHeading());
+            });
+        }catch (Exception e){
+            DriverStation.reportError(e.toString(), true);
+        }
+        return Commands.none();
     }
 
     /**
@@ -178,8 +274,11 @@ public class SwerveSubsystem extends SubsystemBase {
      * @return a Command that centers the modules of the SwerveDrive subsystem
      */
     public Command centerModulesCommand() {
-        throw new UnsupportedOperationException("Not implemented");
-
+        return run(()->{
+            for (swervelib.SwerveModule module: swerveDrive.getModules()){
+                module.setAngle(0.0);
+            }
+        });
     }
 
     /**
@@ -193,7 +292,9 @@ public class SwerveSubsystem extends SubsystemBase {
      *         given speed
      */
     public Command driveToDistanceCommand(double distanceInMeters, double speedInMetersPerSecond) {
-        throw new UnsupportedOperationException("Not implemented");
+        return run(() -> drive(new ChassisSpeeds(speedInMetersPerSecond, 0, 0)))
+                .until(() -> swerveDrive.getPose().getTranslation()
+                        .getDistance(new Translation2d(0, 0)) > distanceInMeters);
     }
 
     /**
@@ -205,7 +306,7 @@ public class SwerveSubsystem extends SubsystemBase {
      * @param kA the acceleration gain of the feedforward
      */
     public void replaceSwerveModuleFeedforward(double kS, double kV, double kA) {
-        throw new UnsupportedOperationException("Not implemented");
+        swerveDrive.replaceSwerveModuleFeedforward(new SimpleMotorFeedforward(kS, kV, kA));
     }
 
     /**
@@ -222,7 +323,18 @@ public class SwerveSubsystem extends SubsystemBase {
      */
     public Command driveCommand(DoubleSupplier translationX, DoubleSupplier translationY,
             DoubleSupplier angularRotationX) {
-        throw new UnsupportedOperationException("Not implemented");
+        
+        return run(()->{
+            swerveDrive.drive(SwerveMath.scaleTranslation(
+                new Translation2d(
+                    translationX.getAsDouble() * swerveDrive.getMaximumChassisVelocity(),
+                    translationY.getAsDouble() * swerveDrive.getMaximumChassisVelocity()
+                ), 0.8),
+                Math.pow(angularRotationX.getAsDouble(), 3) * swerveDrive.getMaximumChassisAngularVelocity(),
+                true, 
+                false
+            );
+        });
 
     }
 
@@ -240,8 +352,30 @@ public class SwerveSubsystem extends SubsystemBase {
      */
     public Command driveCommand(DoubleSupplier translationX, DoubleSupplier translationY, DoubleSupplier headingX,
             DoubleSupplier headingY) {
-        throw new UnsupportedOperationException("Not implemented");
+        
+        swerveDrive.setHeadingCorrection(true);//should normally be true, but testing is fine
 
+        return run(()->{
+
+            Translation2d scaledInputs = SwerveMath.scaleTranslation(
+                new Translation2d(
+                    translationX.getAsDouble(), 
+                    translationY.getAsDouble()
+                ), 
+                0.8
+            );
+
+            driveFieldOriented(
+                swerveDrive.swerveController.getTargetSpeeds(
+                    scaledInputs.getX(),
+                    scaledInputs.getY(),
+                    headingX.getAsDouble(),
+                    headingY.getAsDouble(),
+                    swerveDrive.getOdometryHeading().getRadians(),
+                    swerveDrive.getMaximumChassisVelocity()
+                )
+            );
+        });
     }
 
     /**
