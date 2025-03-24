@@ -268,8 +268,12 @@ public class SwerveSubsystem extends SubsystemBase {
      *                      robot-relative.
      */
     public void drive(Translation2d translation, double rotation, boolean fieldRelative) {
-        throw new UnsupportedOperationException("Not implemented");
-
+        swerveDrive.drive(
+            translation, 
+            rotation, 
+            fieldRelative, 
+            false
+        ); // open loop false bc according to yagsl, should not be open loop most of time
     }
 
     /**
@@ -278,7 +282,7 @@ public class SwerveSubsystem extends SubsystemBase {
      * @param velocity Velocity according to the field.
      */
     public void driveFieldOriented(ChassisSpeeds velocity) {
-        throw new UnsupportedOperationException("Not implemented");
+        swerveDrive.driveFieldOriented(velocity);
     }
 
     /**
@@ -287,7 +291,9 @@ public class SwerveSubsystem extends SubsystemBase {
      * @param velocity Velocity according to the field.
      */
     public Command driveFieldOriented(Supplier<ChassisSpeeds> velocity) {
-        throw new UnsupportedOperationException("Not implemented");
+        return run(()->{
+            driveFieldOriented(velocity.get());
+        });
     }
 
     /**
@@ -296,7 +302,7 @@ public class SwerveSubsystem extends SubsystemBase {
      * @param velocity Robot oriented {@link ChassisSpeeds}
      */
     public void drive(ChassisSpeeds velocity) {
-        throw new UnsupportedOperationException("Not implemented");
+        swerveDrive.drive(velocity);
     }
 
     /**
@@ -305,7 +311,7 @@ public class SwerveSubsystem extends SubsystemBase {
      * @return {@link SwerveDriveKinematics} of the swerve drive.
      */
     public SwerveDriveKinematics getKinematics() {
-        throw new UnsupportedOperationException("Not implemented");
+        return swerveDrive.kinematics;
     }
 
     /**
@@ -318,7 +324,7 @@ public class SwerveSubsystem extends SubsystemBase {
      * @param initialHolonomicPose The pose to set the odometry to
      */
     public void resetOdometry(Pose2d initialHolonomicPose) {
-        throw new UnsupportedOperationException("Not implemented");
+        swerveDrive.resetOdometry(initialHolonomicPose);
     }
 
     /**
@@ -328,7 +334,7 @@ public class SwerveSubsystem extends SubsystemBase {
      * @return The robot's pose
      */
     public Pose2d getPose() {
-        throw new UnsupportedOperationException("Not implemented");
+        return swerveDrive.getPose();
     }
 
     /**
@@ -337,7 +343,7 @@ public class SwerveSubsystem extends SubsystemBase {
      * @param chassisSpeeds Chassis Speeds to set.
      */
     public void setChassisSpeeds(ChassisSpeeds chassisSpeeds) {
-        throw new UnsupportedOperationException("Not implemented");
+        swerveDrive.setChassisSpeeds(chassisSpeeds);
     }
 
     /**
@@ -346,7 +352,7 @@ public class SwerveSubsystem extends SubsystemBase {
      * @param trajectory The trajectory to post.
      */
     public void postTrajectory(Trajectory trajectory) {
-        throw new UnsupportedOperationException("Not implemented");
+        swerveDrive.postTrajectory(trajectory);
     }
 
     /**
